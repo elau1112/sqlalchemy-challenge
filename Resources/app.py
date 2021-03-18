@@ -34,14 +34,22 @@ def index():
 @app.route("/api/v1.0/precipitation")
 def precipitation():
     session = Session(engine)
-    results = session.query(Measurement.date, Measurement.prcp).all()
+    lastd = session.query(Measurement.date).\
+        order_by(Measurement.date.desc()).first()
+    M12 = dt.date((int)(lastd[0][:4]), (int)(lastd[0][5:7]), (int)(lastd[0][8:10])) - dt.timedelta(days = 365)
+
+    results = session.query(Measurement.date, Measurement.prcp).\
+        filter(Measurement.date >= M12).\
+        order_by(Measurement.date).all()
     session.close()
     #all_prcp = list(np.ravel(results))
     all_prcp = []
     for date, prcp in results:
-        Precipitation_dict = {}
-        Precipitation_dict["Date"] = date
-        Precipitation_dict["PRCP"] = prcp
+        #date as the key and prcp as the value
+        Precipitation_dict = {date : prcp}
+        #Precipitation_dict = {}
+        #Precipitation_dict["Date"] = date
+        #Precipitation_dict["PRCP"] = prcp
         all_prcp.append(Precipitation_dict)
     return jsonify(all_prcp)
 
@@ -60,12 +68,14 @@ def stations():
 @app.route("/api/v1.0/tobs")
 def tobs():
     session = Session(engine)
-    lastd = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
-    M12 = dt.date((int)(lastd[0][:4]), (int)(lastd[0][5:7]), (int)(lastd[0][::9])) - dt.timedelta(days = 365)
+    lastd = session.query(Measurement.date).\
+        filter(Measurement.station == 'USC00519281').\
+        order_by(Measurement.date.desc()).first()
+    M12 = dt.date((int)(lastd[0][:4]), (int)(lastd[0][5:7]), (int)(lastd[0][8:10])) - dt.timedelta(days = 365)
 
     results = session.query(Measurement.date, Measurement.tobs, Measurement.station).\
         filter(Measurement.station == 'USC00519281').\
-        filter(Measurement.date > M12).\
+        filter(Measurement.date >= M12).\
         order_by(Measurement.date).all()
     session.close()
     all_temp = []
